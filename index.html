@@ -822,7 +822,7 @@
         <h3>スマホのロック画面（QR名刺）</h3>
         <div class="wp-prev"><img id="wpImg" alt="ロック画面の壁紙の見本"></div>
         <button class="btn-main" id="wpSave" style="align-self:flex-start">壁紙を保存</button>
-        <p class="hint">スマホを見せるだけで、相手がQRを読み取れます。時計に重ならないよう、上は空けています。保存した画像を写真アプリで開き、ロック画面の壁紙に設定してください。</p>
+        <p class="hint">スマホを見せるだけで、相手がQRを読み取れます。時計に重ならないよう、上は空けています。スマホでは「壁紙を保存」を押すと出てくるメニューで「画像を保存」を選びます。そのあと写真アプリで画像を開き、共有ボタン →「壁紙に使用」で設定してください。</p>
       </div>
       <div class="group">
         <h3>オンライン会議の背景（1920×1080）</h3>
@@ -17900,7 +17900,7 @@ button{font:inherit;color:inherit}
   $('#pngSave').addEventListener('click', async () => {
     const blob = await cardPng(S, pngOpts.side, pngOpts.w, view.backIdx);
     const tag = { front: 'omote', back: 'ura', both: 'omote-ura', mock: 'mockup' }[pngOpts.side];
-    download(`${fileBase()}-${tag}.png`, blob, 'image/png');
+    saveImage(`${fileBase()}-${tag}.png`, blob);
   });
 
   // ---------- メール署名 ----------
@@ -18016,7 +18016,7 @@ button{font:inherit;color:inherit}
     $$('#bgSide button').forEach(x => x.setAttribute('aria-pressed', x === b));
     renderBg();
   });
-  $('#bgSave').addEventListener('click', async () => download(fileBase() + '-haikei.png', await backgroundPng(S, bgOpts.side), 'image/png'));
+  $('#bgSave').addEventListener('click', async () => saveImage(fileBase() + '-haikei.png', await backgroundPng(S, bgOpts.side), 'image/png'));
 
   // ---------- ⑤ お礼メッセージ ----------
   const ty = { ch: 'mail', tone: 'polite', edited: false };
@@ -18155,7 +18155,7 @@ button{font:inherit;color:inherit}
     wpUrl = URL.createObjectURL(blob);
     $('#wpImg').src = wpUrl;
   }
-  $('#wpSave').addEventListener('click', async () => download(fileBase() + '-kabegami.png', await wallpaperPng(S), 'image/png',
+  $('#wpSave').addEventListener('click', async () => saveImage(fileBase() + '-kabegami.png', await wallpaperPng(S),
     '壁紙を保存しました。写真アプリで開いて、ロック画面の壁紙に設定してください。'));
 
   // ---------- 記録の書き出しと、届いた連絡先の取り込み ----------
@@ -18975,6 +18975,18 @@ ${sheets}</body></html>`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     if (okMsg) notify(okMsg);
+  }
+  // On a phone an image goes through the share sheet, so 「画像を保存」 puts it straight into the photo library
+  async function saveImage(name, blob, okMsg) {
+    const phone = /iPhone|iPad|iPod|Android/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (!EMBEDDED && phone && typeof File === 'function' && navigator.canShare) {
+      const file = new File([blob], name, { type: blob.type || 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file] }); return; }
+        catch (err) { if (err && err.name === 'AbortError') return; }
+      }
+    }
+    download(name, blob, 'image/png', okMsg);
   }
   // Some browsers drop non-ASCII download names, so the file name comes from the romanised name
   const fileBase = () => 'meishi-' + (String(S.kana || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'card');

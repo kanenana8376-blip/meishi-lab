@@ -96,6 +96,20 @@
   .place-card.vertical { width: min(300px, 100%); }
   .place-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   .place-card .place-sel { outline: 2px dashed var(--accent); outline-offset: 2px; }
+  .place-nudge { display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(2, 40px); gap: 6px; justify-content: center; }
+  .place-nudge button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 10px; font-size: 18px; cursor: pointer; touch-action: manipulation; }
+  .place-nudge button:disabled { opacity: .4; cursor: default; }
+  .place-nudge [data-nudge=up] { grid-column: 2; grid-row: 1; }
+  .place-nudge [data-nudge=left] { grid-column: 1; grid-row: 2; }
+  .place-nudge [data-nudge=down] { grid-column: 2; grid-row: 2; }
+  .place-nudge [data-nudge=right] { grid-column: 3; grid-row: 2; }
+  .place-tip-touch { display: none; }
+  @media (pointer: coarse) { .place-tip-key { display: none; } .place-tip-touch { display: inline; } }
+  @media (max-width: 600px) {
+    dialog.sheet.place { width: calc(100vw - 12px); max-width: none; }
+    dialog.sheet.place .sheet-in { padding-left: 12px; padding-right: 12px; }
+    .place-stage { padding: 8px; }
+  }
   dialog.sheet::backdrop { background: rgba(20,18,16,.45); }
   .f-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .tstyle { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px 10px; align-items: center; font-size: 13px; }
@@ -1158,9 +1172,10 @@
 <dialog class="sheet place" id="placeDialog" aria-labelledby="placeTitle">
   <div class="sheet-in">
     <div class="sheet-head"><h2 id="placeTitle">文字や写真を動かす</h2><button class="sheet-x" data-close aria-label="閉じる">×</button></div>
-    <p class="hint">動かしたいものを押したまま動かします。押して選んだあと、矢印キーでも少しずつ動かせます（Shift キーを押しながらだと大きく）。</p>
+    <p class="hint">動かしたいものを押したまま動かします。<span class="place-tip-key">押して選んだあと、矢印キーでも少しずつ動かせます（Shift キーを押しながらだと大きく）。</span><span class="place-tip-touch">指で押したまま動かし、細かく合わせるときは下の矢印ボタンを押します。</span></p>
     <div class="place-stage"><div class="place-card" id="placeCard" tabindex="0"></div></div>
     <div class="inline"><span class="count" id="placeSel"></span></div>
+    <div class="place-nudge" id="placeNudge" aria-label="少しずつ動かす"><button type="button" data-nudge="up" aria-label="上へ">↑</button><button type="button" data-nudge="left" aria-label="左へ">←</button><button type="button" data-nudge="down" aria-label="下へ">↓</button><button type="button" data-nudge="right" aria-label="右へ">→</button></div>
     <div class="inline"><button class="btn-sub" id="placeReset">配置を元に戻す</button><button class="btn-main" data-close>できあがり</button></div>
   </div>
 </dialog>
@@ -18782,6 +18797,7 @@ button{font:inherit;color:inherit}
     $$('#placeCard .place-sel').forEach(e => e.classList.remove('place-sel'));
     if (placeView.key) $$(PLACE_SEL[placeView.key], $('#placeCard')).forEach(e => e.classList.add('place-sel'));
     const o = (S.offsets || {})[placeView.key];
+    $$('#placeNudge button').forEach(b => { b.disabled = !placeView.key; });
     $('#placeSel').textContent = placeView.key ? `選択中：${PLACE_KEYS[placeView.key]}${o ? `（横 ${o[0].toFixed(1)}・縦 ${o[1].toFixed(1)}）` : ''}` : '動かしたい文字や写真を押してください';
   }
   function setOffset(key, x, y) {
@@ -18813,6 +18829,13 @@ button{font:inherit;color:inherit}
     e.preventDefault();
     const o = (S.offsets || {})[placeView.key] || [0, 0], step = e.shiftKey ? 2 : 0.5;
     setOffset(placeView.key, o[0] + (e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0), o[1] + (e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0));
+    changed();
+  });
+  $('#placeNudge').addEventListener('click', e => {
+    const b = e.target.closest('[data-nudge]');
+    if (!b || !placeView.key) return;
+    const o = (S.offsets || {})[placeView.key] || [0, 0], d = b.dataset.nudge, step = 0.5;
+    setOffset(placeView.key, o[0] + (d === 'left' ? -step : d === 'right' ? step : 0), o[1] + (d === 'up' ? -step : d === 'down' ? step : 0));
     changed();
   });
   $('#placeDialog').addEventListener('click', e => { if (e.target === e.currentTarget || e.target.closest('[data-close]')) e.currentTarget.close(); });

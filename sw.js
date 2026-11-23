@@ -1,5 +1,5 @@
 // Keeps 名刺ラボ working without a connection. Built by tools/build_app.py — edit that, not this file.
-const CACHE = 'meishi-lab-f50e60b058a6';
+const CACHE = 'meishi-lab-d663b0ff0893';
 const FILES = ["./", "index.html", "cards.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
